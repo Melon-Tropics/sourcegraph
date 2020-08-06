@@ -63,22 +63,41 @@ query Search($query: String!) {
 	return resp.Data.Search.Results.Results, nil
 }
 
-type SearchFileResult struct {
-	Name string `json:"name"`
+type SearchFileResults struct {
+	MatchCount int64 `json:"matchCount"`
+	Results    []*struct {
+		File struct {
+			Name string `json:"name"`
+		} `json:"file"`
+		Repository struct {
+			Name string `json:"name"`
+		} `json:"repository"`
+		RevSpec struct {
+			Expr string `json:"expr"`
+		} `json:"revSpec"`
+	} `json:"results"`
 }
 
-type SearchFileResults []*SearchFileResult
-
-// SearchFiles search files with given query.
-func (c *Client) SearchFiles(query string) (SearchFileResults, error) {
+// SearchFiles searches files with given query. It returns the match count and
+// corresponding file matches.
+func (c *Client) SearchFiles(query string) (*SearchFileResults, error) {
 	const gqlQuery = `
 query Search($query: String!) {
 	search(query: $query) {
 		results {
+			matchCount
 			results {
 				... on FileMatch {
 					file {
 						name
+					}
+					repository {
+						name
+					}
+					revSpec {
+						... on GitRevSpecExpr {
+							expr
+						}
 					}
 				}
 			}
@@ -93,9 +112,7 @@ query Search($query: String!) {
 		Data struct {
 			Search struct {
 				Results struct {
-					Results []struct {
-						*SearchFileResult `json:"file"`
-					} `json:"results"`
+					*SearchFileResults
 				} `json:"results"`
 			} `json:"search"`
 		} `json:"data"`
@@ -105,9 +122,137 @@ query Search($query: String!) {
 		return nil, errors.Wrap(err, "request GraphQL")
 	}
 
-	results := make([]*SearchFileResult, 0, len(resp.Data.Search.Results.Results))
-	for _, r := range resp.Data.Search.Results.Results {
-		results = append(results, r.SearchFileResult)
+	return resp.Data.Search.Results.SearchFileResults, nil
+}
+
+type SearchCommitResults struct {
+	MatchCount int64 `json:"matchCount"`
+	Results    []*struct {
+		URL string `json:"url"`
+	} `json:"results"`
+}
+
+// SearchCommits searches commits with given query. It returns the match count and
+// corresponding file matches.
+func (c *Client) SearchCommits(query string) (*SearchCommitResults, error) {
+	const gqlQuery = `
+query Search($query: String!) {
+	search(query: $query) {
+		results {
+			matchCount
+			results {
+				... on CommitSearchResult {
+					url
+				}
+			}
+		}
 	}
-	return results, nil
+}
+`
+	variables := map[string]interface{}{
+		"query": query,
+	}
+	var resp struct {
+		Data struct {
+			Search struct {
+				Results struct {
+					*SearchCommitResults
+				} `json:"results"`
+			} `json:"search"`
+		} `json:"data"`
+	}
+	err := c.GraphQL("", gqlQuery, variables, &resp)
+	if err != nil {
+		return nil, errors.Wrap(err, "request GraphQL")
+	}
+
+	return resp.Data.Search.Results.SearchCommitResults, nil
+}
+
+// SearchAlert is an alert specific to searches (i.e. not site alert).
+type SearchAlert struct {
+	Title           string `json:"title"`
+	Description     string `json:"description"`
+	ProposedQueries []struct {
+		Description string `json:"description"`
+		Query       string `json:"query"`
+	} `json:"proposedQueries"`
+}
+
+// SearchAlert returns the alert returned by searching for given query.
+// It returns both nil values if no alert raised and no error occurred.
+func (c *Client) SearchAlert(query string) (*SearchAlert, error) {
+	const gqlQuery = `
+query Search($query: String!) {
+	search(query: $query) {
+		results {
+			alert {
+				title
+				description
+				proposedQueries {
+					description
+					query
+				}
+			}
+		}
+	}
+}
+`
+	variables := map[string]interface{}{
+		"query": query,
+	}
+	var resp struct {
+		Data struct {
+			Search struct {
+				Results struct {
+					*SearchAlert `json:"alert"`
+				} `json:"results"`
+			} `json:"search"`
+		} `json:"data"`
+	}
+	err := c.GraphQL("", gqlQuery, variables, &resp)
+	if err != nil {
+		return nil, errors.Wrap(err, "request GraphQL")
+	}
+
+	return resp.Data.Search.Results.SearchAlert, nil
+}
+
+type SearchStatsResult struct {
+	Languages []struct {
+		Name       string `json:"name"`
+		TotalLines int    `json:"totalLines"`
+	} `json:"languages"`
+}
+
+// SearchStats returns statistics of given query.
+func (c *Client) SearchStats(query string) (*SearchStatsResult, error) {
+	const gqlQuery = `
+query SearchResultsStats($query: String!) {
+	search(query: $query) {
+		stats {
+			languages {
+				name
+				totalLines
+			}
+		}
+	}
+}
+`
+	variables := map[string]interface{}{
+		"query": query,
+	}
+	var resp struct {
+		Data struct {
+			Search struct {
+				Stats *SearchStatsResult `json:"stats"`
+			} `json:"search"`
+		} `json:"data"`
+	}
+	err := c.GraphQL("", gqlQuery, variables, &resp)
+	if err != nil {
+		return nil, errors.Wrap(err, "request GraphQL")
+	}
+
+	return resp.Data.Search.Stats, nil
 }

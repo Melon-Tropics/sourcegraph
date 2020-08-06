@@ -5,10 +5,12 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/inconshreveable/log15"
 	"github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus"
+	indexmanager "github.com/sourcegraph/sourcegraph/enterprise/cmd/precise-code-intel-indexer/internal/index_manager"
 	indexabilityupdater "github.com/sourcegraph/sourcegraph/enterprise/cmd/precise-code-intel-indexer/internal/indexability_updater"
 	"github.com/sourcegraph/sourcegraph/enterprise/cmd/precise-code-intel-indexer/internal/indexer"
 	"github.com/sourcegraph/sourcegraph/enterprise/cmd/precise-code-intel-indexer/internal/janitor"
@@ -43,6 +45,10 @@ func main() {
 		indexMinimumSearchRatio          = mustParsePercent(rawIndexMinimumSearchRatio, "PRECISE_CODE_INTEL_INDEX_MINIMUM_SEARCH_RATIO")
 		indexMinimumPreciseCount         = mustParseInt(rawIndexMinimumPreciseCount, "PRECISE_CODE_INTEL_INDEX_MINIMUM_PRECISE_COUNT")
 		disableJanitor                   = mustParseBool(rawDisableJanitor, "PRECISE_CODE_INTEL_DISABLE_JANITOR")
+		maximumTransactions              = mustParseInt(rawMaxTransactions, "PRECISE_CODE_INTEL_MAXIMUM_TRANSACTIONS")
+		requeueDelay                     = mustParseInterval(rawRequeueDelay, "PRECISE_CODE_INTEL_REQUEUE_DELAY")
+		cleanupInterval                  = mustParseInterval(rawCleanupInterval, "PRECISE_CODE_INTEL_CLEANUP_INTERVAL")
+		maximumMissedHeartbeats          = mustParseInt(rawMissedHeartbeats, "PRECISE_CODE_INTEL_MAXIMUM_MISSED_HEARTBEATS")
 	)
 
 	observationContext := &observation.Context{
@@ -51,29 +57,31 @@ func main() {
 		Registerer: prometheus.DefaultRegisterer,
 	}
 
-	store := store.NewObserved(mustInitializeStore(), observationContext)
-	MustRegisterQueueMonitor(observationContext.Registerer, store)
+	s := store.NewObserved(mustInitializeStore(), observationContext)
+	MustRegisterQueueMonitor(observationContext.Registerer, s)
 	resetterMetrics := resetter.NewResetterMetrics(prometheus.DefaultRegisterer)
 	indexabilityUpdaterMetrics := indexabilityupdater.NewUpdaterMetrics(prometheus.DefaultRegisterer)
 	schedulerMetrics := scheduler.NewSchedulerMetrics(prometheus.DefaultRegisterer)
-	indexerMetrics := indexer.NewIndexerMetrics(prometheus.DefaultRegisterer)
-	server := server.New()
-
-	indexResetter := resetter.IndexResetter{
-		Store:         store,
-		ResetInterval: resetInterval,
-		Metrics:       resetterMetrics,
-	}
+	indexerMetrics := indexer.NewIndexerMetrics(observationContext)
+	indexManager := indexmanager.New(store.WorkerutilIndexStore(s), indexmanager.ManagerOptions{
+		MaximumTransactions:   maximumTransactions,
+		RequeueDelay:          requeueDelay,
+		CleanupInterval:       cleanupInterval,
+		UnreportedIndexMaxAge: cleanupInterval * time.Duration(maximumMissedHeartbeats),
+		DeathThreshold:        cleanupInterval * time.Duration(maximumMissedHeartbeats),
+	})
+	server := server.New(indexManager)
+	indexResetter := resetter.NewIndexResetter(s, resetInterval, resetterMetrics)
 
 	indexabilityUpdater := indexabilityupdater.NewUpdater(
-		store,
+		s,
 		gitserver.DefaultClient,
 		indexabilityUpdaterInterval,
 		indexabilityUpdaterMetrics,
 	)
 
 	scheduler := scheduler.NewScheduler(
-		store,
+		s,
 		gitserver.DefaultClient,
 		schedulerInterval,
 		indexBatchSize,
@@ -85,7 +93,7 @@ func main() {
 	)
 
 	indexer := indexer.NewIndexer(
-		store,
+		s,
 		gitserver.DefaultClient,
 		frontendURL,
 		indexerPollInterval,
@@ -93,10 +101,10 @@ func main() {
 	)
 
 	janitorMetrics := janitor.NewJanitorMetrics(prometheus.DefaultRegisterer)
-	janitor := janitor.New(store, janitorInterval, janitorMetrics)
+	janitor := janitor.New(s, janitorInterval, janitorMetrics)
 
 	go server.Start()
-	go indexResetter.Run()
+	go indexResetter.Start()
 	go indexabilityUpdater.Start()
 	go scheduler.Start()
 	go indexer.Start()
@@ -120,6 +128,7 @@ func main() {
 	}()
 
 	server.Stop()
+	indexResetter.Stop()
 	indexer.Stop()
 	scheduler.Stop()
 	indexabilityUpdater.Stop()

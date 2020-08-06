@@ -491,8 +491,16 @@ func searchFilesInRepos(ctx context.Context, args *search.TextParameters) (res [
 
 	// if there are no indexed repos and this is a structural search
 	// query, there will be no results. Raise a friendly alert.
-	if args.PatternInfo.IsStructuralPat && len(indexed.Repos) == 0 {
+	if args.PatternInfo.IsStructuralPat && len(indexed.Repos()) == 0 {
 		return nil, nil, errors.New("no indexed repositories for structural search")
+	}
+
+	// unindexed search does not yet support negated patterns. If there are no indexed repos
+	// and the pattern is negated, raise a friendly alert.
+	if args.PatternInfo.IsNegated && len(indexed.Repos()) == 0 {
+		return nil, nil, errors.New("Your search query contained a negated search pattern for file content " +
+			fmt.Sprintf("\"%s\" ", args.PatternInfo.Pattern) + "but there are no indexed repositories to search over. " +
+			"Negated file contents are not supported for unindexed repositories yet.")
 	}
 
 	common.repos = make([]*types.Repo, len(args.Repos))
@@ -505,7 +513,7 @@ func searchFilesInRepos(ctx context.Context, args *search.TextParameters) (res [
 		return nil, common, nil
 	}
 
-	tr.LazyPrintf("%d indexed repos, %d unindexed repos", len(indexed.Repos), len(indexed.Unindexed))
+	tr.LazyPrintf("%d indexed repos, %d unindexed repos", len(indexed.Repos()), len(indexed.Unindexed))
 
 	var searcherRepos []*search.RepositoryRevisions
 	if indexed.DisableUnindexedSearch {
@@ -675,7 +683,7 @@ func searchFilesInRepos(ctx context.Context, args *search.TextParameters) (res [
 		mu.Lock()
 		defer mu.Unlock()
 		if ctx.Err() == nil {
-			for _, repo := range indexed.Repos {
+			for _, repo := range indexed.Repos() {
 				common.searched = append(common.searched, repo.Repo)
 				common.indexed = append(common.indexed, repo.Repo)
 			}
@@ -692,7 +700,7 @@ func searchFilesInRepos(ctx context.Context, args *search.TextParameters) (res [
 		}
 		if err == errNoResultsInTimeout {
 			// Effectively, all repositories have timed out.
-			for _, repo := range indexed.Repos {
+			for _, repo := range indexed.Repos() {
 				common.timedout = append(common.timedout, repo.Repo)
 			}
 		}
@@ -714,7 +722,7 @@ func searchFilesInRepos(ctx context.Context, args *search.TextParameters) (res [
 			}
 
 			// Filter Zoekt repos that didn't contain matches
-			for _, repo := range indexed.Repos {
+			for _, repo := range indexed.Repos() {
 				for key := range partition {
 					if string(repo.Repo.Name) == key {
 						repos = append(repos, repo)
@@ -741,8 +749,10 @@ func searchFilesInRepos(ctx context.Context, args *search.TextParameters) (res [
 		}
 	}()
 
-	// This guard disables unindexed structural search for now.
-	if !args.PatternInfo.IsStructuralPat {
+	// This guard disables
+	// - unindexed structural search
+	// - unindexed search of negated content
+	if !(args.PatternInfo.IsStructuralPat || args.PatternInfo.IsNegated) {
 		if err := callSearcherOverRepos(searcherRepos, nil); err != nil {
 			mu.Lock()
 			searchErr = err

@@ -7,15 +7,6 @@
     overflow: auto;
     padding-bottom: 4rem;
 
-    h1,
-    h2,
-    h3,
-    h4,
-    h5,
-    h6 {
-        color: $gray-14;
-    }
-
     &__logo {
         width: 3rem;
         height: 3rem;
@@ -41,17 +32,18 @@
     }
 
     &__content {
-        display: grid;
-        grid-template-columns: 7fr 5fr;
         padding: 2rem;
 
         &-description {
             max-width: 60rem;
+            font-size: 16px;
+            line-height: 150%;
         }
     }
 
     &__repo-card {
         padding: 1rem;
+        margin-top: 1.5rem;
         background: $color-bg-2;
     }
 
@@ -60,39 +52,26 @@
         padding-right: 2rem;
     }
 
-    &__keyword-text {
-        color: #1c7cd6;
-    }
-
     &__subheading {
         margin-top: 1.5rem;
     }
 
     &__repo-list-icon {
         margin-right: 0.5rem;
-        color: #cad2e2;
+        color: $gray-15;
     }
 
     &__example-bar {
         width: fit-content;
         height: fit-content;
-        font-size: 12px;
         background-color: transparent;
+        border-radius: 2px 0 0 2px;
     }
 
     &__repo-item {
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-    }
-
-    &__example-search-button {
-        font-size: 12px;
-    }
-
-    &__web-link {
-        color: #1c7cd6;
-        font-size: 12px;
     }
 }
 
@@ -101,6 +80,9 @@
         &__repo-card {
             background: #f7fafd;
             border-color: $color-light-border-2;
+        }
+        &__repo-list-icon {
+            color: $gray-11;
         }
     }
 }

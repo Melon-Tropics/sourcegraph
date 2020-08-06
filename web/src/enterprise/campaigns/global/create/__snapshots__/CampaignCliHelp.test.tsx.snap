@@ -8,12 +8,15 @@ exports[`CampaignCliHelp renders 1`] = `
     className="test"
   >
     <h1>
-      Create a campaign 
-      <span
-        className="badge badge-info"
-      >
-        Beta
-      </span>
+      Create a campaign
+       
+      <sup>
+        <span
+          className="badge badge-info text-uppercase"
+        >
+          Beta
+        </span>
+      </sup>
     </h1>
     <div
       className="card"
@@ -129,17 +132,17 @@ $ <span class=\\"hljs-built_in\\">export</span> SRC_ACCESS_TOKEN=&lt;YOUR TOKEN&
             <code
               dangerouslySetInnerHTML={
                 Object {
-                  "__html": "$ <span class=\\"hljs-built_in\\">echo</span> <span class=\\"hljs-string\\">'{
-  \\"scopeQuery\\": \\"repohasfile:main.go\\",
-  \\"steps\\": [
+                  "__html": "$ <span class=\\"hljs-built_in\\">echo</span> <span class=\\"hljs-string\\">&#x27;{
+  &quot;scopeQuery&quot;: &quot;repohasfile:main.go&quot;,
+  &quot;steps&quot;: [
     {
-      \\"type\\": \\"docker\\",
-      \\"image\\": \\"golang:1.14-alpine\\",
-      \\"args\\": [\\"sh\\", \\"-c\\", \\"cd /work &amp;&amp; gofmt -w ./\\"]
+      &quot;type&quot;: &quot;docker&quot;,
+      &quot;image&quot;: &quot;golang:1.14-alpine&quot;,
+      &quot;args&quot;: [&quot;sh&quot;, &quot;-c&quot;, &quot;cd /work &amp;&amp; gofmt -w ./&quot;]
     }
   ]
 }
-'</span> &gt; action.json
+&#x27;</span> &gt; action.json
 ",
                 }
               }
