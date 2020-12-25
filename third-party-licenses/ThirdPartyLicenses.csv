@@ -1,5 +1,5 @@
 package_manager,name,version,licenses,homepage,approved
-Yarn,@babel/runtime,7.10.3,MIT,https://babeljs.io/,Approved
+Yarn,@babel/runtime,7.10.4,MIT,https://babeljs.io/,Approved
 Yarn,@hot-loader/react-dom,16.13.0,MIT,https://github.com/hot-loader/react-dom#readme,Approved
 Yarn,@primer/octicons-react,9.6.0,MIT,https://octicons.github.com/,Approved
 Yarn,@reach/accordion,0.10.2,MIT,Unknown,Approved
@@ -45,7 +45,7 @@ Yarn,abbrev,1.1.1,ISC,Unknown,Approved
 Yarn,agent-base,4.2.1,MIT,http://n8.io/,Approved
 Yarn,agent-base,4.3.0,MIT,http://n8.io/,Approved
 Yarn,agentkeepalive,3.5.2,MIT,https://fengmk2.com,Approved
-Yarn,ajv,6.12.0,MIT,https://github.com/epoberezkin/ajv,Approved
+Yarn,ajv,6.12.2,MIT,https://github.com/epoberezkin/ajv,Approved
 Yarn,ansi-align,2.0.0,ISC,https://github.com/nexdrew/ansi-align#readme,Approved
 Yarn,ansi-regex,2.1.1,MIT,sindresorhus.com,Approved
 Yarn,ansi-regex,3.0.0,MIT,sindresorhus.com,Approved
@@ -797,7 +797,7 @@ Yarn,sorted-object,2.0.1,(WTFPL OR MIT),https://domenic.me/,Approved
 Yarn,sorted-union-stream,2.1.3,MIT,https://github.com/mafintosh/sorted-union-stream,Approved
 Yarn,source-map,0.6.1,New BSD,https://github.com/mozilla/source-map,Approved
 Yarn,sourcegraph,0.0.0,Apache 2.0,https://github.com/sourcegraph/sourcegraph,Approved
-Yarn,sourcegraph,24.5.0,Apache 2.0,https://github.com/sourcegraph/sourcegraph,Approved
+Yarn,sourcegraph,24.6.0,Apache 2.0,https://github.com/sourcegraph/sourcegraph,Approved
 Go,sourcegraph.com/sqs/pbtypes,v1.0.0,Apache 2.0,"",Approved
 Yarn,spdx-correct,3.0.2,Apache 2.0,https://kemitchell.com,Approved
 Yarn,spdx-exceptions,2.2.0,CC-BY-3.0,Unknown,Approved
